@@ -11,8 +11,8 @@ namespace PaymentService.Models.Payment
         public string this[string key] { get; }
     }
 
-    public class URLInvoiceResponse : IInvoiceAction
+    public class URLInvoiceResponse : IInvoiceResponse
     {
-        
+        public string this[string key] => throw new NotImplementedException();
     }
 }

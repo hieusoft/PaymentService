@@ -11,6 +11,7 @@ namespace PaymentService.Models.Payment.Handlers.VnPay
     // https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
     public class VnPayInvoiceBuilder
     {
+
         public readonly string Version = "2.1.0";
 
         public readonly string Command = "pay";
@@ -38,8 +39,8 @@ namespace PaymentService.Models.Payment.Handlers.VnPay
         public string ToInvoiceUrl()
         {
             // TODO implement checksum
-            return "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-              + $"?vnp_Version={WebUtility.UrlEncode(Version)}"
+            string Arguments = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?";
+              = $"vnp_Version={WebUtility.UrlEncode(Version)}"
               + $"&vnp_Command={WebUtility.UrlEncode(Command)}"
               + $"&vnp_TmnCode={WebUtility.UrlEncode(MerchantId)}"
               + $"&vnp_Amount={WebUtility.UrlEncode((Invoice.TotalPrice * 100).ToString("F0"))}"
@@ -70,7 +71,7 @@ namespace PaymentService.Models.Payment.Handlers.VnPay
         {
             VnPayLocale.English    => "&vnp_Locale=vn",
             VnPayLocale.Vietnamese => "&vnp_Locale=en",
-            _                      => "",  
+            _                      => throw new ArgumentException("Not a valid locale"),  
         };
     }
 

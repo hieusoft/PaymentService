@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using PaymentService.Models.Entities;
 
-namespace PaymentService.Models.Payment.Handlers.VnPay
+namespace PaymentService.Models.Payment.Methods.VnPay
 {
     // https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
     public class VnPayInvoiceBuilder
@@ -36,24 +38,32 @@ namespace PaymentService.Models.Payment.Handlers.VnPay
 
 
 
-        public string ToInvoiceUrl()
+        public string ToInvoiceUrl(string hashSecret)
         {
-            // TODO implement checksum
-            string Arguments = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?";
-              = $"vnp_Version={WebUtility.UrlEncode(Version)}"
-              + $"&vnp_Command={WebUtility.UrlEncode(Command)}"
-              + $"&vnp_TmnCode={WebUtility.UrlEncode(MerchantId)}"
-              + $"&vnp_Amount={WebUtility.UrlEncode((Invoice.TotalPrice * 100).ToString("F0"))}"
-              + VnPayInvoiceBuilderUtils.GetPaymentMethodString(PaymentMethod)
-              + VnPayInvoiceBuilderUtils.GetLocaleString(Locale)
-              + $"&vnp_IpAddr={WebUtility.UrlEncode(IpAddress)}"
-              + $"&vnp_TxnRef={WebUtility.UrlEncode(Invoice.Id.ToString())}"
-              + $"&vnp_CreateDate={WebUtility.UrlEncode(Invoice.CreatedAt.ToString("yyyyMMddHHmmss"))}"
-              + $"&vnp_ExpireDate={WebUtility.UrlEncode(Invoice.ExpiresAt.ToString("yyyyMMddHHmmss"))}"
-              + $"&vnp_OrderType={WebUtility.UrlEncode(OrderType)}"
-              + $"&vnp_OrderInfo={WebUtility.UrlEncode(TransactionInfo)}"
-              + $"&vnp_ReturnUrl={WebUtility.UrlEncode(ReturnUrl)}"
-            ;
+            SortedDictionary<string, string> queryParams = new()
+            {
+                { "vnp_Version", Version },
+                { "vnp_Command", Command },
+                { "vnp_TmnCode", MerchantId },
+                { "vnp_Amount", (Invoice.TotalPrice * 100).ToString("F0") },
+                { "vnp_Locale", VnPayInvoiceBuilderUtils.GetLocaleString(Locale) },
+                { "vnp_IpAddr", IpAddress },
+                { "vnp_TxnRef", Invoice.Id.ToString() },
+                { "vnp_CreateDate", Invoice.CreatedAt.ToString("yyyyMMddHHmmss") },
+                { "vnp_ExpireDate", Invoice.ExpiresAt.ToString("yyyyMMddHHmmss") },
+                { "vnp_OrderType", OrderType },
+                { "vnp_OrderInfo", TransactionInfo },
+                { "vnp_ReturnUrl", ReturnUrl }
+            };
+            if (PaymentMethod != VnPayPaymentMethod.Auto) 
+            {
+                queryParams.Add("vnp_BankCode", VnPayInvoiceBuilderUtils.GetPaymentMethodString(PaymentMethod));
+            }
+
+            string queryString = string.Join('&', queryParams.Select(p => $"{p.Key}={WebUtility.UrlEncode(p.Value)}").ToArray());
+            string hash = VnPayUtils.GetHmacSha512(hashSecret, queryString);
+            
+            return $"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?{queryString}&vnp_SecureHash={hash}";
         }
     }
 
@@ -61,9 +71,9 @@ namespace PaymentService.Models.Payment.Handlers.VnPay
     {
         public static string GetPaymentMethodString(VnPayPaymentMethod paymentMethod) => paymentMethod switch
         {
-            VnPayPaymentMethod.QrCode            => "&vnp_BankCode=VNPAYQR",
-            VnPayPaymentMethod.DomesticCard      => "&vnp_BankCode=VNBANK",
-            VnPayPaymentMethod.InternationalCard => "&vnp_BankCode=INTCARD",
+            VnPayPaymentMethod.QrCode            => "VNPAYQR",
+            VnPayPaymentMethod.DomesticCard      => "VNBANK",
+            VnPayPaymentMethod.InternationalCard => "INTCARD",
             _                                    => "",  
         };
 

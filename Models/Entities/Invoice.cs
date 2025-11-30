@@ -42,19 +42,6 @@ namespace PaymentService.Models.Entities
 
     }
 
-    public class InvoiceItem : IEntity
-    {
-        public ulong Id { get; set; }
-
-        public ulong InvoiceId { get; set; }
-
-        public ulong ItemId { get; set; }
-
-        public decimal UnitPrice { get; set; }
-
-        public int Quantity;
-    }
-
     public enum InvoiceStatus
     {
         Ready,

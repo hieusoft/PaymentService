@@ -25,9 +25,15 @@ public class CheckoutController : ControllerBase
     [HttpPost("/")]
     public IActionResult Checkout([FromBody] Invoice invoice)
     {
-        IPaymentMethodHandler handler = _paymentFactory.GetHandler(invoice);
+        if (_dbContext.Invoices.Find(invoice.Id) != null)
+        {
+            return BadRequest("Invoice already exists");
+        }
 
+        IPaymentMethodHandler handler = _paymentFactory.GetHandler(invoice);
+        _dbContext.Invoices.Add(invoice);
         var action = handler.InitiateInvoice(Request, invoice);
+        _dbContext.SaveChanges();
 
         switch (action)
         {

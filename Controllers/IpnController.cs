@@ -22,9 +22,9 @@ public class IpnController : ControllerBase
         _dbContext = dbContext;
     }
 
-    [HttpPost("/vnpay/")]
-    public IActionResult VnPayIpn([FromBody] Invoice invoice)
+    [HttpGet("/vnpay/")]
+    public IActionResult VnPayIpn()
     {
-        
+        new VnPayIpnHandler(Request.Query);
     }
 }
